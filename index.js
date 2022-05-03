@@ -83,6 +83,43 @@ app.get('/messages', async (req, res) => {
   }
 });
 
+app.post('/participants', async (req, res) => {
+  let { name } = req.body;
+  if (name) {
+    name = stripHtml(name).result.trim();
+  }
+  const loginValidation = authSchema.validate(req.body, {
+    abortEarly: false,
+  });
+  if (loginValidation.hasOwnProperty('error')) {
+    res
+      .status(422)
+      .send(loginValidation.error.details.map((detail) => detail.message));
+  } else {
+    try {
+      const requisicao = await db.collection('participants').findOne({ name });
+      if (requisicao) {
+        res.status(409).send('User already exists');
+      } else {
+        await db.collection('participants').insertOne({
+          name,
+          lastStatus: Date.now(),
+        });
+        await db.collection('messages').insertOne({
+          from: name,
+          to: 'Todos',
+          text: 'entra na sala...',
+          type: 'status',
+          time: dayjs().format('HH:mm:ss'),
+        });
+        res.status(201).send({ name });
+      }
+    } catch (err) {
+      console.log('Request error: ', err);
+    }
+  }
+});
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(chalk.bold.green(`Server running on port ${port}`));
