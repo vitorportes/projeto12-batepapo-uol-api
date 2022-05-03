@@ -35,6 +35,23 @@ mongoClient
     console.log(chalk.bold.red('Error connecting to MongoDB', err));
   });
 
+app.get('/participants', async (req, res) => {
+  const { user } = req.headers;
+  if (user) {
+    try {
+      const participants = await db
+        .collection('participants')
+        .find({ name: { $ne: user } })
+        .toArray();
+      res.send(participants);
+    } catch (err) {
+      res.status(500).send({ error: err.message });
+    }
+  } else {
+    res.status(401).send({ error: 'Unauthorized' });
+  }
+});
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(chalk.bold.green(`Server running on port ${port}`));
