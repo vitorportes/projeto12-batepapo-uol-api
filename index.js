@@ -120,6 +120,39 @@ app.post('/participants', async (req, res) => {
   }
 });
 
+app.post('/messages', async (req, res) => {
+  let { to, text, type } = req.body;
+  const { user } = req.headers;
+  const bodyValidation = messageBodySchema.validate(req.body, {
+    abortEarly: false,
+  });
+  const headerValidation = await db
+    .collection('participants')
+    .findOne({ name: user });
+  if (bodyValidation.hasOwnProperty('error') || !headerValidation) {
+    if (bodyValidation.error) {
+      res
+        .status(422)
+        .send(bodyValidation.error.details.map((detail) => detail.message));
+    } else {
+      res.sendStatus(422);
+    }
+  } else {
+    try {
+      const message = await db.collection('messages').insertOne({
+        from: user,
+        to: stripHtml(to).result.trim(),
+        text: stripHtml(text).result.trim(),
+        type: stripHtml(type).result.trim(),
+        time: dayjs().format('HH:mm:ss'),
+      });
+      res.sendStatus(201);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+});
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(chalk.bold.green(`Server running on port ${port}`));
