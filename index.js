@@ -52,6 +52,37 @@ app.get('/participants', async (req, res) => {
   }
 });
 
+app.get('/messages', async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const { user } = req.headers;
+    if (limit) {
+      const requisicao = await db
+        .collection('messages')
+        .find({
+          $or: [
+            { to: 'Todos' },
+            { to: user },
+            { from: user },
+            { type: 'message' },
+          ],
+        })
+        .toArray();
+      let messages = [...requisicao].reverse().slice(0, limit);
+      res.send(messages.reverse());
+    } else {
+      const requisicao = await db
+        .collection('messages')
+        .find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] })
+        .toArray();
+      let messages = [...requisicao];
+      res.send(messages);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(chalk.bold.green(`Server running on port ${port}`));
